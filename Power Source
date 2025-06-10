@@ -1,76 +1,86 @@
--- Roblox Hoopz Script for Delta Executor
--- Features: Camlock, Auto Power, Auto Guard, Speedboost, Autoshoot
--- UI: Mobile-friendly toggle buttons
+-- Roblox Hoopz Script with Mobile UI and Features
+-- Supports Delta Executor
+-- UI based on Obsidian framework (fallback to basic UI if not available)
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local Camera = Workspace.CurrentCamera
 
--- Create Mobile UI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.Name = "HoopzScriptUI"
-ScreenGui.ResetOnSpawn = false  -- Persist across respawns
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
 
-local UIFrame = Instance.new("Frame")
-UIFrame.Size = UDim2.new(0, 200, 0, 300)  -- Small size for mobile
-UIFrame.Position = UDim2.new(0, 10, 0.5, -150)  -- Bottom-left corner
-UIFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-UIFrame.BackgroundTransparency = 0.5
-UIFrame.Parent = ScreenGui
+-- Toggles for features
+local camlockEnabled = false
+local autoPowerEnabled = false
+local autoGuardEnabled = false
+local speedboostEnabled = false
+local autoshootEnabled = false
 
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, 0, 0, 30)
-TitleLabel.Position = UDim2.new(0, 0, 0, 0)
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "Hoopz Script"
-TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.Parent = UIFrame
+-- Load Obsidian UI (if available, otherwise use fallback)
+local ObsidianUI
+pcall(function()
+    ObsidianUI = require(game.ReplicatedStorage:WaitForChild("Obsidian"))  -- Adjust path as needed
+end)
 
--- Toggle buttons for each feature
-local toggles = {
-    Camlock = false,
-    AutoPower = false,
-    AutoGuard = false,
-    Speedboost = false,
-    Autoshoot = false
-}
-
-local function createToggleButton(name, positionY)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 0, 40)
-    button.Position = UDim2.new(0, 0, 0, positionY)
-    button.BackgroundColor3 = Color3.fromRGB(0, 100, 0)  -- Green when off
-    button.Text = name .. " (OFF)"
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Parent = UIFrame
+if ObsidianUI then
+    print("Using Obsidian UI framework")
+    -- Assuming Obsidian has a function to create a UI; adapt based on actual API
+    local ui = ObsidianUI.CreateUI({  -- Hypothetical Obsidian function
+        Title = "Hoopz Script",
+        Size = UDim2.new(0, 200, 0, 300),
+        Position = UDim2.new(0.5, -100, 0.5, -150),
+        Buttons = {
+            {Text = "Toggle Camlock", Callback = function() camlockEnabled = not camlockEnabled end},
+            {Text = "Toggle Auto Power", Callback = function() autoPowerEnabled = not autoPowerEnabled end},
+            {Text = "Toggle Auto Guard", Callback = function() autoGuardEnabled = not autoGuardEnabled end},
+            {Text = "Toggle Speedboost", Callback = function() speedboostEnabled = not speedboostEnabled end},
+            {Text = "Toggle Autoshoot", Callback = function() autoshootEnabled = not autoshootEnabled end},
+        }
+    })
+    ui.Parent = player:WaitForChild("PlayerGui")  -- Parent to PlayerGui for mobile compatibility
+else
+    print("Obsidian not found; using fallback UI")
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = player:WaitForChild("PlayerGui")
     
-    button.MouseButton1Click:Connect(function()
-        toggles[name] = not toggles[name]
-        button.BackgroundColor3 = toggles[name] and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(0, 100, 0)
-        button.Text = name .. " (" .. (toggles[name] and "ON" or "OFF") .. ")"
-    end)
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Size = UDim2.new(0, 200, 0, 300)
+    MainFrame.Position = UDim2.new(0.5, -100, 0.5, -150)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    MainFrame.Parent = ScreenGui
+    
+    local buttons = {
+        {Text = "Toggle Camlock", Position = UDim2.new(0.5, -90, 0, 10), Callback = function() camlockEnabled = not camlockEnabled end},
+        {Text = "Toggle Auto Power", Position = UDim2.new(0.5, -90, 0, 70), Callback = function() autoPowerEnabled = not autoPowerEnabled end},
+        {Text = "Toggle Auto Guard", Position = UDim2.new(0.5, -90, 0, 130), Callback = function() autoGuardEnabled = not autoGuardEnabled end},
+        {Text = "Toggle Speedboost", Position = UDim2.new(0.5, -90, 0, 190), Callback = function() speedboostEnabled = not speedboostEnabled end},
+        {Text = "Toggle Autoshoot", Position = UDim2.new(0.5, -90, 0, 250), Callback = function() autoshootEnabled = not autoshootEnabled end},
+    }
+    
+    for i, btnData in pairs(buttons) do
+        local button = Instance.new("TextButton")
+        button.Text = btnData.Text
+        button.Size = UDim2.new(0, 180, 0, 50)  -- Mobile-friendly size
+        button.Position = btnData.Position
+        button.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.Parent = MainFrame
+        
+        button.MouseButton1Click:Connect(btnData.Callback)  -- For touch input
+    end
 end
 
-createToggleButton("Camlock", 40)
-createToggleButton("AutoPower", 90)
-createToggleButton("AutoGuard", 140)
-createToggleButton("Speedboost", 190)
-createToggleButton("Autoshoot", 240)
-
--- Helper Functions
+-- Helper function to find the nearest hoop
 local function getNearestHoop()
-    local hoops = Workspace:FindFirstChild("Hoops") and Workspace.Hoops:GetChildren() or {}  -- Adjust based on game structure
+    local hoops = Workspace:FindFirstChild("Hoops") and Workspace.Hoops:GetChildren() or {}  -- Assuming hoops are in a folder
     local nearestHoop = nil
     local minDistance = math.huge
-    local playerPosition = Character.HumanoidRootPart.Position
+    local playerPosition = character.HumanoidRootPart.Position
     
-    for _, hoop in ipairs(hoops) do
+    for _, hoop in pairs(hoops) do
         if hoop:IsA("BasePart") then  -- Assuming hoops are BaseParts
             local distance = (hoop.Position - playerPosition).Magnitude
             if distance < minDistance then
@@ -79,90 +89,88 @@ local function getNearestHoop()
             end
         end
     end
-    
     return nearestHoop
 end
 
-local function camlockToHoop(hoop)
-    if hoop then
-        Camera.CameraType = Enum.CameraType.Scriptable
-        Camera.CFrame = CFrame.new(Character.HumanoidRootPart.Position, hoop.Position)
-    end
-end
-
-local function autoShoot()
-    local ball = Workspace:FindFirstChild("Ball")  -- Assuming the ball is a part named "Ball"
-    local hoop = getNearestHoop()
-    
-    if ball and hoop and Character:FindFirstChild("HumanoidRootPart") then
-        local ballPosition = ball.Position
-        local playerPosition = Character.HumanoidRootPart.Position
-        local direction = (hoop.Position - ballPosition).Unit * 50  -- Adjust velocity for auto power
-        
-        ball.Velocity = direction  -- Simple velocity application; adjust for game physics
-        ball.Position = playerPosition + Vector3.new(0, 5, 0)  -- Position ball near player before shooting
-    end
-end
-
-local function autoGuard()
-    local opponents = {}  -- Find opponents (e.g., other players)
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            table.insert(opponents, player.Character.HumanoidRootPart.Position)
+-- Helper function to find the nearest opponent
+local function getNearestOpponent()
+    local opponents = {}
+    for _, otherPlayer in pairs(Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character then
+            table.insert(opponents, otherPlayer.Character.HumanoidRootPart)
         end
     end
     
-    if #opponents > 0 then
-        local nearestOpponent = opponents[1]
-        local distanceToNearest = (Character.HumanoidRootPart.Position - nearestOpponent).Magnitude
-        
-        for _, pos in ipairs(opponents) do
-            local distance = (Character.HumanoidRootPart.Position - pos).Magnitude
-            if distance < distanceToNearest then
-                nearestOpponent = pos
-                distanceToNearest = distance
-            end
+    local nearestOpponent = nil
+    local minDistance = math.huge
+    local playerPosition = character.HumanoidRootPart.Position
+    
+    for _, opponentPart in pairs(opponents) do
+        local distance = (opponentPart.Position - playerPosition).Magnitude
+        if distance < minDistance and distance > 5 then  -- Avoid self
+            minDistance = distance
+            nearestOpponent = opponentPart
         end
-        
-        -- Move towards nearest opponent to guard
-        Humanoid:MoveTo(nearestOpponent)
     end
+    return nearestOpponent
 end
 
--- Main Logic
-Humanoid.StateChanged:Connect(function(oldState, newState)
-    if newState == Enum.HumanoidStateType.Jumping then  -- Detect jump
-        if toggles.Camlock then
+-- Main loop for features
+RunService.Heartbeat:Connect(function()
+    if not character or not character.Parent then return end  -- Safety check
+    
+    if speedboostEnabled then
+        humanoid.WalkSpeed = 50  -- Boosted speed for mobile
+    else
+        humanoid.WalkSpeed = 16  -- Default speed
+    end
+    
+    if autoGuardEnabled then
+        local nearestOpponent = getNearestOpponent()
+        if nearestOpponent then
+            -- Move toward opponent (simple pathfinding via Tween)
+            local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear)
+            local tweenGoal = {CFrame = CFrame.new(nearestOpponent.Position)}
+            local tween = TweenService:Create(character.HumanoidRootPart, tweenInfo, tweenGoal)
+            tween:Play()
+        end
+    end
+    
+    if autoPowerEnabled then
+        -- Auto adjust power based on distance (hypothetical; adapt to game mechanics)
+        local ball = Workspace:FindFirstChild("Ball")  -- Assuming the ball exists
+        if ball then
             local hoop = getNearestHoop()
             if hoop then
-                camlockToHoop(hoop)
+                local distance = (ball.Position - hoop.Position).Magnitude
+                local power = math.clamp(distance / 10, 1, 10)  -- Example: Scale power with distance
+                -- Apply power (game-specific; e.g., set a ball property)
+                ball:SetAttribute("Power", power)  -- Hypothetical attribute
             end
-        end
-        
-        if toggles.Autoshoot then
-            autoShoot()  -- Auto shoot when jumping
         end
     end
 end)
 
-RunService.RenderStepped:Connect(function()
-    if toggles.Speedboost then
-        Humanoid.WalkSpeed = 50  -- Boost speed; adjust as needed (default is 16)
-    else
-        Humanoid.WalkSpeed = 16  -- Reset to default
-    end
-    
-    if toggles.AutoGuard then
-        autoGuard()  -- Continuously guard
-    end
-    
-    if toggles.AutoPower and toggles.Autoshoot then  -- Enhance auto shoot with auto power
-        -- This is simplistic; in a real game, calculate based on distance
+-- Detect jump and trigger Camlock and Autoshoot
+UserInputService.JumpRequest:Connect(function()
+    if camlockEnabled then
         local hoop = getNearestHoop()
         if hoop then
-            local distance = (Character.HumanoidRootPart.Position - hoop.Position).Magnitude
-            local powerMultiplier = distance / 10  -- Example: Scale power by distance
-            -- Apply to autoShoot if needed (e.g., modify velocity)
+            workspace.CurrentCamera.CameraSubject = hoop  -- Lock camera to hoop
+            workspace.CurrentCamera.CFrame = CFrame.new(character.HumanoidRootPart.Position, hoop.Position)
+        end
+    end
+    
+    if autoshootEnabled then
+        local ball = Workspace:FindFirstChild("Ball")  -- Assuming the ball exists
+        if ball then
+            local hoop = getNearestHoop()
+            if hoop then
+                -- Simulate shooting the ball toward the hoop
+                local direction = (hoop.Position - ball.Position).Unit
+                ball.Velocity = direction * 50  -- Hypothetical velocity for shooting
+                -- Add any game-specific shoot function here
+            end
         end
     end
 end)
